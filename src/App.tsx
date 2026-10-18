@@ -24,6 +24,7 @@ import {
 } from './services/sheetsService';
 import { sendChatMessage } from './services/chatService';
 import { exportToSingleHtmlFile } from './utils/exportHtml';
+import { saveStudentsToFirestore, loadStudentsFromFirestore } from './services/firestoreService';
 
 import { Header } from './components/Header';
 import { StudentList } from './components/StudentList';
@@ -60,6 +61,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [isFirebaseSaving, setIsFirebaseSaving] = useState<boolean>(false);
 
   // Google Sheets state
   const [spreadsheetId, setSpreadsheetId] = useState<string>(() => {
@@ -470,9 +472,38 @@ export default function App() {
     });
   };
 
+  const handleSaveToFirebase = async () => {
+    setIsFirebaseSaving(true);
+    try {
+      await saveStudentsToFirestore(students);
+      showToast('Firebase Firestore (db-pracitce-c0c18) DB에 학생 성적이 저장되었습니다!');
+    } catch (err: any) {
+      console.error('Firebase save error:', err);
+      showToast(err?.message || 'Firebase 저장에 실패했습니다. Firestore 규칙을 확인해주세요.', 'error');
+    } finally {
+      setIsFirebaseSaving(false);
+    }
+  };
+
+  const handleLoadFromFirebase = async () => {
+    try {
+      const loaded = await loadStudentsFromFirestore();
+      if (loaded.length === 0) {
+        showToast('Firebase Firestore에 저장된 학생 데이터가 없습니다.', 'error');
+      } else {
+        setStudents(loaded);
+        setSelectedStudentId(loaded[0].id);
+        showToast(`Firebase DB에서 학생 ${loaded.length}명의 데이터를 불러왔습니다!`);
+      }
+    } catch (err: any) {
+      console.error('Firebase load error:', err);
+      showToast(err?.message || 'Firebase 불러오기에 실패했습니다.', 'error');
+    }
+  };
+
   const handleExportHtml = () => {
     exportToSingleHtmlFile(students, '중학생 학업 성취도 관리');
-    showToast('독립 실행형 단일 HTML 파일 다운로드가 시작되었습니다!');
+    showToast('Firebase DB가 연동된 단일 HTML 파일 다운로드가 시작되었습니다!');
   };
 
   return (
@@ -512,6 +543,9 @@ export default function App() {
           setIsStudentModalOpen(true);
         }}
         onExportHtml={handleExportHtml}
+        onSaveToFirebase={handleSaveToFirebase}
+        onLoadFromFirebase={handleLoadFromFirebase}
+        isFirebaseSaving={isFirebaseSaving}
         sheetConnected={Boolean(spreadsheetId)}
       />
 

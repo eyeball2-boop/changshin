@@ -19,6 +19,9 @@ interface HeaderProps {
   onOpenChatModal: () => void;
   onOpenAddStudentModal: () => void;
   onExportHtml: () => void;
+  onSaveToFirebase: () => void;
+  onLoadFromFirebase: () => void;
+  isFirebaseSaving: boolean;
   sheetConnected: boolean;
 }
 
@@ -31,6 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChatModal,
   onOpenAddStudentModal,
   onExportHtml,
+  onSaveToFirebase,
+  onLoadFromFirebase,
+  isFirebaseSaving,
   sheetConnected,
 }) => {
   return (
@@ -60,16 +66,38 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Tools */}
           <div className="flex items-center flex-wrap gap-2">
+            {/* Firebase DB Quick Save */}
+            <button
+              type="button"
+              onClick={onSaveToFirebase}
+              disabled={isFirebaseSaving}
+              title="Firebase Firestore 클라우드 DB에 전체 학생 성적 저장"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <span>{isFirebaseSaving ? '🔥 DB 저장 중...' : '🔥 Firebase DB 저장'}</span>
+            </button>
+
             {/* Export Single HTML Button */}
             <button
               type="button"
               onClick={onExportHtml}
-              title="오프라인에서도 열리는 단일 HTML 파일로 대시보드 저장"
+              title="Firebase DB가 연결된 완전한 단일 HTML 파일로 저장"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors cursor-pointer"
             >
               <FileCode className="w-4 h-4 text-slate-600" />
               <span>단일 HTML 저장</span>
             </button>
+
+            {/* View Single HTML Direct Link */}
+            <a
+              href="/student_progress_firebase.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="새 창에서 독립 실행형 단일 HTML 파일 열기"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+            >
+              <span>HTML 바로보기</span>
+            </a>
 
             {/* Google Sheets DB Button */}
             <button

@@ -2,9 +2,9 @@ import { Student, DEFAULT_SUBJECTS, EXAM_TERMS } from '../types';
 
 /**
  * Creates and triggers a download of a complete, standalone, self-contained single HTML file
- * containing the full student grade database, charts, and improvement tracker.
+ * connected to Firebase Firestore and containing the full student grade database and charts.
  */
-export function exportToSingleHtmlFile(students: Student[], schoolName: string = '창신중학교'): void {
+export function exportToSingleHtmlFile(students: Student[], schoolName: string = '중학교'): void {
   const jsonData = JSON.stringify(students, null, 2);
   const subjectsData = JSON.stringify(DEFAULT_SUBJECTS);
   const termsData = JSON.stringify(EXAM_TERMS);
@@ -14,118 +14,244 @@ export function exportToSingleHtmlFile(students: Student[], schoolName: string =
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${schoolName} 중학생 과목별 수업 향상도 분석 리포트</title>
+  <title>${schoolName} 과목별 수업 향상도 분석 시스템 (Firebase 연동)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #4f46e5;
+      --primary-hover: #4338ca;
       --primary-light: #eef2ff;
       --success: #10b981;
       --success-light: #ecfdf5;
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
       --danger: #ef4444;
+      --danger-light: #fef2f2;
       --border: #e2e8f0;
       --bg: #f8fafc;
       --card: #ffffff;
-      --text: #1e293b;
+      --text: #0f172a;
       --text-muted: #64748b;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 24px; }
-    .container { max-width: 1200px; margin: 0 auto; }
-    header { background: #fff; padding: 24px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-    h1 { font-size: 24px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 10px; }
-    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 13px; font-weight: 600; }
-    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    header {
+      background: #ffffff; padding: 20px 24px; border-radius: 20px;
+      border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+      margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo-badge {
+      width: 44px; height: 44px; border-radius: 14px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+    h1 { font-size: 20px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    .sub-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .actions-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-firebase { background: #ff9100; color: #fff; }
+    .btn-firebase:hover { background: #e08100; }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
     .badge-success { background: var(--success-light); color: var(--success); }
-    .grid { display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-    .sidebar { background: #fff; border-radius: 16px; border: 1px solid var(--border); padding: 16px; height: fit-content; }
-    .student-item { padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
-    .student-item:hover { background: #f1f5f9; }
-    .student-item.active { background: var(--primary-light); border-color: var(--primary); font-weight: 600; color: var(--primary); }
-    .card { background: #fff; border-radius: 16px; border: 1px solid var(--border); padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-    .stat-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
-    .stat-value { font-size: 24px; font-weight: 700; }
-    .text-success { color: var(--success); }
-    .text-danger { color: var(--danger); }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
-    th, td { padding: 12px; text-align: center; border-bottom: 1px solid var(--border); }
-    th { background: #f8fafc; font-weight: 600; color: var(--text-muted); }
-    .grade-pill { display: inline-block; width: 28px; height: 28px; line-height: 28px; border-radius: 50%; font-weight: 700; font-size: 12px; }
-    .grade-A { background: #dcfce7; color: #15803d; }
-    .grade-B { background: #e0e7ff; color: #3730a3; }
-    .grade-C { background: #fef3c7; color: #b45309; }
-    .grade-D { background: #ffedd5; color: #c2410c; }
-    .grade-E { background: #fee2e2; color: #b91c1c; }
-    .chart-container { width: 100%; height: 280px; position: relative; margin: 20px 0; }
-    .print-btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-    .print-btn:hover { opacity: 0.9; }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    .main-grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+    @media (max-width: 980px) { .main-grid { grid-template-columns: 1fr; } }
+    .sidebar { background: #ffffff; border-radius: 20px; border: 1px solid var(--border); padding: 18px; height: fit-content; }
+    .search-box { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); font-size: 13px; margin-bottom: 12px; background: #f8fafc; }
+    .search-box:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .student-item {
+      padding: 12px 14px; border-radius: 14px; margin-bottom: 8px; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; background: #fff;
+    }
+    .student-item:hover { background: #f8fafc; border-color: var(--border); }
+    .student-item.active { background: var(--primary-light); border-color: #c7d2fe; }
+    .student-avatar {
+      width: 38px; height: 38px; border-radius: 12px; background: #e2e8f0;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #475569;
+    }
+    .student-item.active .student-avatar { background: var(--primary); color: #fff; }
+    .card { background: #ffffff; border-radius: 20px; border: 1px solid var(--border); padding: 24px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
+    .student-banner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
+    .stat-card.highlight { background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border-color: #bbf7d0; }
+    .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 800; color: #0f172a; }
+    .stat-value.up { color: var(--success); }
+    .stat-value.down { color: var(--danger); }
+    .tabs-bar { display: flex; gap: 8px; margin-bottom: 16px; background: #f1f5f9; padding: 4px; border-radius: 12px; width: fit-content; }
+    .tab-btn { padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: transparent; cursor: pointer; color: var(--text-muted); }
+    .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .table-container { overflow-x: auto; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: center; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    th { background: #f8fafc; font-weight: 700; color: #475569; }
+    td.left { text-align: left; }
+    .grade-badge { display: inline-block; width: 28px; height: 28px; line-height: 28px; border-radius: 8px; font-weight: 800; font-size: 12px; }
+    .grade-A { background: #dcfce7; color: #16a34a; }
+    .grade-B { background: #e0e7ff; color: #4338ca; }
+    .grade-C { background: #fef3c7; color: #d97706; }
+    .grade-D { background: #ffedd5; color: #ea580c; }
+    .grade-E { background: #fee2e2; color: #dc2626; }
+    .db-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 9999px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
   </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGvHU-OoXEBF-4hIQXfFrncfY8G5JjPQo",
+      authDomain: "db-pracitce-c0c18.firebaseapp.com",
+      projectId: "db-pracitce-c0c18",
+      storageBucket: "db-pracitce-c0c18.firebasestorage.app",
+      messagingSenderId: "60361713564",
+      appId: "1:60361713564:web:bd058c53606c37e22dca59",
+      measurementId: "G-9C0Z5QTQ5T"
+    };
+
+    let app, analytics, db;
+    try {
+      app = initializeApp(firebaseConfig);
+      analytics = getAnalytics(app);
+      db = getFirestore(app);
+      window.firebaseDb = db;
+    } catch(e) {
+      console.warn("Firebase Init:", e);
+    }
+
+    window.saveAllStudentsToFirebase = async function() {
+      if (!db) { alert("Firebase가 초기화되지 않았습니다."); return; }
+      try {
+        const btn = document.getElementById('saveDbBtn');
+        btn.innerText = '⏳ 저장 중...';
+        for (const s of window.currentStudents) {
+          await setDoc(doc(db, "middle_school_students", s.id), s);
+        }
+        btn.innerText = '✅ Firebase 저장 완료!';
+        setTimeout(() => { btn.innerText = '🔥 Firebase DB에 저장'; }, 2000);
+        alert("학생 데이터가 Firebase Firestore에 성공적으로 저장되었습니다!");
+      } catch (err) {
+        console.error(err);
+        alert("Firebase 저장 실패: " + err.message);
+      }
+    };
+
+    window.loadStudentsFromFirebase = async function() {
+      if (!db) { alert("Firebase가 연결되지 않았습니다."); return; }
+      try {
+        const snapshot = await getDocs(collection(db, "middle_school_students"));
+        const loaded = [];
+        snapshot.forEach(d => loaded.push(d.data()));
+        if (loaded.length === 0) {
+          alert("Firebase에 저장된 데이터가 없습니다. 먼저 저장 버튼을 눌러보세요.");
+          return;
+        }
+        window.currentStudents = loaded;
+        window.renderAll();
+        alert("Firebase DB에서 학생 " + loaded.length + "명의 데이터를 성공적으로 불러왔습니다!");
+      } catch (err) {
+        alert("불러오기 실패: " + err.message);
+      }
+    };
+  </script>
 </head>
 <body>
   <div class="container">
     <header>
-      <div>
-        <h1>🎓 ${schoolName} 중학생 수업 향상도 종합 리포트</h1>
-        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">저장일시: ${new Date().toLocaleString('ko-KR')} | 오프라인 독립 실행형 단일 HTML 파일</p>
+      <div class="brand">
+        <div class="logo-badge">🎓</div>
+        <div>
+          <h1>${schoolName} 과목별 수업 향상도 분석 시스템</h1>
+          <div class="sub-desc">Firebase DB 연동 및 독립 실행형 단일 HTML 파일 | 저장일시: ${new Date().toLocaleString('ko-KR')}</div>
+        </div>
       </div>
-      <div>
-        <button class="print-btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+      <div class="actions-bar">
+        <div class="db-status"><span class="dot"></span><span>Firebase DB (db-pracitce-c0c18)</span></div>
+        <button id="saveDbBtn" class="btn btn-firebase" onclick="window.saveAllStudentsToFirebase()">🔥 Firebase DB에 저장</button>
+        <button class="btn btn-outline" onclick="window.loadStudentsFromFirebase()">🔄 Firebase에서 불러오기</button>
+        <button class="btn btn-outline" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
       </div>
     </header>
 
-    <div class="grid">
+    <div class="main-grid">
       <div class="sidebar">
-        <h3 style="font-size: 16px; margin-bottom: 14px;">👥 학생 명단 (<span id="studentCount">0</span>명)</h3>
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-weight:800; font-size:15px;">
+          <span>👥 학생 명단 (<span id="studentCountBadge">0</span>)</span>
+        </div>
+        <input type="text" id="searchInput" placeholder="학생 이름 검색..." class="search-box" oninput="renderList()" />
         <div id="studentListContainer"></div>
       </div>
 
-      <div class="main-content">
+      <div class="content-area">
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div class="student-banner">
             <div>
-              <h2 id="currentStudentTitle" style="font-size: 22px; font-weight: 700;">학생 정보</h2>
-              <p id="currentStudentGoal" style="color: var(--primary); font-size: 14px; margin-top: 4px; font-weight: 500;"></p>
-            </div>
-            <div id="overallDeltaBadge"></div>
-          </div>
-
-          <div class="stats-row">
-            <div class="stat-box">
-              <div class="stat-label">1학기 중간고사 평균</div>
-              <div class="stat-value" id="valInitialAvg">0점</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">최근 시험 평균</div>
-              <div class="stat-value" id="valCurrentAvg">0점</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">학업 총 향상도 (Δ)</div>
-              <div class="stat-value" id="valTotalDelta">+0점</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">최대 성장 과목</div>
-              <div class="stat-value" style="color: var(--primary);" id="valTopSubject">-</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h2 id="curName" style="font-size:24px; font-weight:800;">학생명</h2>
+                <span id="curClass" class="badge badge-primary">2학년 3반</span>
+              </div>
+              <p id="curGoal" style="font-size:13px; color:var(--primary); font-weight:600; margin-top:4px;"></p>
             </div>
           </div>
 
-          <h3 style="font-size: 16px; margin: 20px 0 10px;">📈 과목별 성적 및 학기별 향상도 변화표</h3>
-          <div style="overflow-x: auto;">
-            <table id="scoresTable">
-              <thead>
-                <tr id="tableHeaderRow"></tr>
-              </thead>
-              <tbody id="tableBody"></tbody>
-            </table>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">1학기 중간고사 평점</div>
+              <div class="stat-value" id="valInitAvg">0.0점</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">최근 시험 종합 평균</div>
+              <div class="stat-value" id="valCurAvg">0.0점</div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="stat-label">종합 향상도 (Δ 점수)</div>
+              <div class="stat-value up" id="valDelta">+0.0점</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">🌟 최고 성장 MVP 과목</div>
+              <div class="stat-value" id="valTopSub" style="font-size:20px; color:var(--primary);">-</div>
+            </div>
           </div>
 
-          <h3 style="font-size: 16px; margin: 24px 0 12px;">📊 과목별 누적 점수 변화 (SVG 그래프)</h3>
-          <div class="chart-container" id="svgChartArea"></div>
+          <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="font-size:16px; font-weight:800;">📊 과목별 학업 향상도 시각화 차트</h3>
+              <div class="tabs-bar">
+                <button class="tab-btn active" id="tabLine" onclick="setTab('line')">📈 성적 추이</button>
+                <button class="tab-btn" id="tabBar" onclick="setTab('bar')">📊 과목별 향상도(Δ)</button>
+              </div>
+            </div>
+            <div id="chartBox" style="min-height:260px; background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px;"></div>
+          </div>
 
-          <div style="background: #f8fafc; border-radius: 12px; padding: 16px; border: 1px solid var(--border); margin-top: 20px;">
-            <h4 style="font-size: 15px; margin-bottom: 8px;">💡 지도 교사 종합 분석 코멘트</h4>
-            <p id="teacherFeedbackArea" style="font-size: 14px; line-height: 1.6; color: #334155;"></p>
+          <div style="margin-top:30px;">
+            <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">📝 과목별 지필·수행평가 성적 상세표</h3>
+            <div class="table-container">
+              <table>
+                <thead><tr id="matrixHeader"></tr></thead>
+                <tbody id="matrixBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top:24px; padding:18px; border-radius:16px; background:#f8fafc; border:1px solid var(--border);">
+            <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:#1e293b;">💡 담당 교사 종합 학업 성장 분석 & 지도 조언</div>
+            <p id="teacherFeedback" style="font-size:13px; color:#475569; line-height:1.7;"></p>
           </div>
         </div>
       </div>
@@ -133,177 +259,160 @@ export function exportToSingleHtmlFile(students: Student[], schoolName: string =
   </div>
 
   <script>
-    const students = ${jsonData};
     const subjects = ${subjectsData};
     const terms = ${termsData};
+    window.currentStudents = ${jsonData};
+    let selIdx = 0;
+    let currentTab = 'line';
 
-    let selectedIndex = 0;
-
-    function getGrade(score) {
-      if (score >= 90) return 'A';
-      if (score >= 80) return 'B';
-      if (score >= 70) return 'C';
-      if (score >= 60) return 'D';
+    function getGrade(sc) {
+      if (sc >= 90) return 'A';
+      if (sc >= 80) return 'B';
+      if (sc >= 70) return 'C';
+      if (sc >= 60) return 'D';
       return 'E';
     }
 
-    function renderStudentList() {
-      const container = document.getElementById('studentListContainer');
-      document.getElementById('studentCount').innerText = students.length;
-      container.innerHTML = '';
-
-      students.forEach((s, idx) => {
-        const item = document.createElement('div');
-        item.className = 'student-item' + (idx === selectedIndex ? ' active' : '');
-        
-        const firstAvg = s.records[0] ? (Object.values(s.records[0].scores).reduce((a,b)=>a+b,0)/Object.values(s.records[0].scores).length) : 0;
-        const lastAvg = s.records[s.records.length-1] ? (Object.values(s.records[s.records.length-1].scores).reduce((a,b)=>a+b,0)/Object.values(s.records[s.records.length-1].scores).length) : 0;
-        const diff = (lastAvg - firstAvg).toFixed(1);
-        const badgeColor = diff >= 0 ? 'badge-success' : 'badge-primary';
-
-        item.innerHTML = '<div><div>' + s.name + '</div><div style="font-size: 12px; color: var(--text-muted);">' + s.grade + '학년 ' + s.classroom + '반 ' + s.number + '번</div></div>' +
-          '<span class="badge ' + badgeColor + '">' + (diff >= 0 ? '+' : '') + diff + '점</span>';
-        
-        item.onclick = () => {
-          selectedIndex = idx;
-          renderStudentList();
-          renderStudentDetail();
-        };
-        container.appendChild(item);
-      });
+    function calcAvg(rec) {
+      if (!rec || !rec.scores) return 0;
+      const v = Object.values(rec.scores);
+      return v.length ? Number((v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)) : 0;
     }
 
-    function renderStudentDetail() {
-      const s = students[selectedIndex];
+    function renderList() {
+      const c = document.getElementById('studentListContainer');
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      c.innerHTML = '';
+      window.currentStudents.forEach((s, i) => {
+        if (q && !s.name.toLowerCase().includes(q)) return;
+        const f = calcAvg(s.records[0]);
+        const l = calcAvg(s.records[s.records.length - 1]);
+        const d = Number((l - f).toFixed(1));
+        const div = document.createElement('div');
+        div.className = 'student-item' + (i === selIdx ? ' active' : '');
+        div.onclick = () => { selIdx = i; renderAll(); };
+        div.innerHTML = '<div style="display:flex; align-items:center; gap:10px;"><div class="student-avatar">' + s.name.slice(0,2) + '</div><div><div style="font-weight:700;">' + s.name + '</div><div style="font-size:12px; color:var(--text-muted);">' + s.grade + '학년 ' + s.classroom + '반 ' + s.number + '번</div></div></div><div style="text-align:right;"><div style="font-weight:800; color:' + (d>=0?'#10b981':'#ef4444') + ';">' + (d>=0?'+':'') + d + '점</div><div style="font-size:11px; color:#64748b;">평균 ' + l + '점</div></div>';
+        c.appendChild(div);
+      });
+      document.getElementById('studentCountBadge').innerText = window.currentStudents.length + '명';
+    }
+
+    function renderDetail() {
+      const s = window.currentStudents[selIdx];
       if (!s) return;
+      document.getElementById('curName').innerText = s.name;
+      document.getElementById('curClass').innerText = s.grade + '학년 ' + s.classroom + '반 ' + s.number + '번';
+      document.getElementById('curGoal').innerText = '🎯 목표: ' + (s.targetGoal || '전과목 성취도 향상');
 
-      document.getElementById('currentStudentTitle').innerText = s.grade + '학년 ' + s.classroom + '반 ' + s.number + '번 ' + s.name + ' 학생 향상도 리포트';
-      document.getElementById('currentStudentGoal').innerText = '🎯 목표: ' + s.targetGoal;
+      const f = calcAvg(s.records[0]);
+      const l = calcAvg(s.records[s.records.length - 1]);
+      const d = Number((l - f).toFixed(1));
 
-      const firstRec = s.records[0];
-      const lastRec = s.records[s.records.length - 1];
+      document.getElementById('valInitAvg').innerText = f + '점';
+      document.getElementById('valCurAvg').innerText = l + '점';
+      document.getElementById('valDelta').innerText = (d>=0?'+':'') + d + '점';
+      document.getElementById('valDelta').className = 'stat-value ' + (d>=0?'up':'down');
 
-      const getAvg = (r) => {
-        if (!r) return 0;
-        const v = Object.values(r.scores);
-        return v.reduce((a,b)=>a+b,0) / v.length;
-      };
-
-      const fAvg = firstRec ? getAvg(firstRec) : 0;
-      const lAvg = lastRec ? getAvg(lastRec) : 0;
-      const dAvg = (lAvg - fAvg).toFixed(1);
-
-      document.getElementById('valInitialAvg').innerText = fAvg.toFixed(1) + '점';
-      document.getElementById('valCurrentAvg').innerText = lAvg.toFixed(1) + '점';
-      document.getElementById('valTotalDelta').innerText = (dAvg >= 0 ? '+' : '') + dAvg + '점';
-      document.getElementById('valTotalDelta').className = 'stat-value ' + (dAvg >= 0 ? 'text-success' : 'text-danger');
-
-      let maxDiff = -999;
-      let topSub = '없음';
+      let maxDiff = -999, topSub = '없음';
       subjects.forEach(sub => {
-        const fromVal = firstRec?.scores[sub.id] || 0;
-        const toVal = lastRec?.scores[sub.id] || 0;
-        const diff = toVal - fromVal;
-        if (diff > maxDiff) {
-          maxDiff = diff;
-          topSub = sub.name + ' (+' + diff + '점)';
-        }
+        const diff = (s.records[s.records.length - 1]?.scores[sub.id] || 0) - (s.records[0]?.scores[sub.id] || 0);
+        if (diff > maxDiff) { maxDiff = diff; topSub = sub.name + ' (+' + diff + '점)'; }
       });
-      document.getElementById('valTopSubject').innerText = topSub;
+      document.getElementById('valTopSub').innerText = topSub;
 
-      // Render table
-      const headerRow = document.getElementById('tableHeaderRow');
-      headerRow.innerHTML = '<th>과목</th>' + s.records.map(r => {
+      // Table
+      const mH = document.getElementById('matrixHeader');
+      mH.innerHTML = '<th class="left">교과목</th>' + s.records.map(r => {
         const t = terms.find(x => x.id === r.termId);
-        return '<th>' + (t ? t.shortName : r.termId) + '</th>';
-      }).join('') + '<th>향상도 (Δ)</th><th>현재성취도</th>';
+        return '<th>' + (t ? t.name : r.termId) + '</th>';
+      }).join('') + '<th style="background:#eef2ff; color:#4338ca;">총 향상도(Δ)</th><th>성취도</th>';
 
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
+      const mB = document.getElementById('matrixBody');
+      mB.innerHTML = '';
       subjects.forEach(sub => {
+        const startSc = s.records[0]?.scores[sub.id] ?? '-';
+        const endSc = s.records[s.records.length - 1]?.scores[sub.id] ?? '-';
+        const diff = (typeof startSc==='number' && typeof endSc==='number') ? endSc - startSc : 0;
+        const gr = typeof endSc==='number' ? getGrade(endSc) : '-';
+
+        let row = '<td class="left" style="font-weight:700;"><span style="color:' + sub.color + '">●</span> ' + sub.name + '</td>';
+        s.records.forEach(r => { row += '<td>' + (r.scores[sub.id] !== undefined ? r.scores[sub.id] + '점' : '-') + '</td>'; });
+        row += '<td style="font-weight:800; color:' + (diff>0?'#10b981':diff<0?'#ef4444':'#64748b') + '; background:#f5f7ff;">' + (diff>0?'+':'') + diff + '점</td>';
+        row += '<td><span class="grade-badge grade-' + gr + '">' + gr + '</span></td>';
+
         const tr = document.createElement('tr');
-        const firstVal = firstRec?.scores[sub.id] ?? '-';
-        const lastVal = lastRec?.scores[sub.id] ?? '-';
-        const delta = (typeof lastVal === 'number' && typeof firstVal === 'number') ? (lastVal - firstVal) : 0;
-        const currentGrade = typeof lastVal === 'number' ? getGrade(lastVal) : '-';
-
-        let rowHtml = '<td style="font-weight: 600; text-align: left;">' + sub.name + '</td>';
-        s.records.forEach(r => {
-          const val = r.scores[sub.id] ?? '-';
-          rowHtml += '<td>' + val + '점</td>';
-        });
-
-        const deltaClass = delta > 0 ? 'text-success' : delta < 0 ? 'text-danger' : '';
-        const deltaText = delta > 0 ? '+' + delta : delta;
-        rowHtml += '<td class="' + deltaClass + '" style="font-weight: 700;">' + deltaText + '점</td>';
-        rowHtml += '<td><span class="grade-pill grade-' + currentGrade + '">' + currentGrade + '</span></td>';
-
-        tr.innerHTML = rowHtml;
-        tbody.appendChild(tr);
+        tr.innerHTML = row;
+        mB.appendChild(tr);
       });
 
-      // SVG Trend Lines
-      renderSvgChart(s);
+      // Chart
+      renderChart(s);
 
-      // Teacher feedback
-      document.getElementById('teacherFeedbackArea').innerHTML =
-        '<strong>[학업 성장 분석]</strong> ' + s.name + ' 학생은 ' + (terms[0]?.name || '1학기') + ' 대비 최신 시험에서 평균 <strong>' +
-        (dAvg >= 0 ? '+' + dAvg : dAvg) + '점</strong>의 괄목할만한 향상을 보였습니다. 특히 <strong>' + topSub + '</strong>의 성장이 돋보이며, ' +
-        (s.notes || '꾸준한 자기주도 학습 습관을 유지하고 있습니다.');
+      document.getElementById('teacherFeedback').innerText = s.name + ' 학생은 시작 시험(평균 ' + f + '점) 대비 최근 시험(평균 ' + l + '점)에서 종합 성적이 ' + (d>=0?'+':'') + d + '점 향상되었습니다. 특히 [' + topSub + '] 과목에서 두드러진 성장을 보였습니다.';
     }
 
-    function renderSvgChart(s) {
-      const area = document.getElementById('svgChartArea');
-      const width = area.clientWidth || 800;
-      const height = 280;
-      const padding = { top: 20, right: 30, bottom: 40, left: 40 };
-
-      const chartW = width - padding.left - padding.right;
-      const chartH = height - padding.top - padding.bottom;
-      const numTerms = s.records.length;
-
-      let svg = '<svg width="100%" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" xmlns="http://www.w3.org/2000/svg">';
-      
-      // Grid lines
-      for (let sc = 0; sc <= 100; sc += 20) {
-        const y = padding.top + chartH - (sc / 100) * chartH;
-        svg += '<line x1="' + padding.left + '" y1="' + y + '" x2="' + (width - padding.right) + '" y2="' + y + '" stroke="#e2e8f0" stroke-dasharray="4"/>';
-        svg += '<text x="' + (padding.left - 8) + '" y="' + (y + 4) + '" fill="#94a3b8" font-size="11" text-anchor="end">' + sc + '</text>';
-      }
-
-      // X-axis labels
-      s.records.forEach((r, idx) => {
-        const t = terms.find(x => x.id === r.termId);
-        const x = padding.left + (idx / Math.max(1, numTerms - 1)) * chartW;
-        svg += '<text x="' + x + '" y="' + (height - 12) + '" fill="#64748b" font-size="12" text-anchor="middle">' + (t ? t.shortName : r.termId) + '</text>';
-      });
-
-      // Draw lines for top 5 subjects
-      subjects.slice(0, 5).forEach(sub => {
-        const points = [];
+    function renderChart(s) {
+      const box = document.getElementById('chartBox');
+      const w = 720, h = 240;
+      if (currentTab === 'line') {
+        const pad = { top: 20, right: 30, bottom: 40, left: 45 };
+        const innerW = w - pad.left - pad.right;
+        const innerH = h - pad.top - pad.bottom;
+        let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%; height:auto;">';
+        [0, 20, 40, 60, 80, 90, 100].forEach(sc => {
+          const y = pad.top + innerH - (sc/100)*innerH;
+          svg += '<line x1="' + pad.left + '" y1="' + y + '" x2="' + (w - pad.right) + '" y2="' + y + '" stroke="' + (sc===90?'#bbf7d0':'#f1f5f9') + '" stroke-width="' + (sc===90?2:1) + '"/>';
+          svg += '<text x="' + (pad.left - 8) + '" y="' + (y + 4) + '" fill="#94a3b8" font-size="11" text-anchor="end">' + sc + '</text>';
+        });
         s.records.forEach((r, idx) => {
-          const val = r.scores[sub.id] || 0;
-          const x = padding.left + (idx / Math.max(1, numTerms - 1)) * chartW;
-          const y = padding.top + chartH - (val / 100) * chartH;
-          points.push({ x, y, val });
+          const t = terms.find(x => x.id === r.termId);
+          const x = pad.left + (idx / Math.max(1, s.records.length - 1)) * innerW;
+          svg += '<text x="' + x + '" y="' + (h - 12) + '" fill="#475569" font-size="12" font-weight="600" text-anchor="middle">' + (t ? t.shortName : r.termId) + '</text>';
         });
-
-        if (points.length > 1) {
-          const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' ');
-          svg += '<path d="' + pathD + '" fill="none" stroke="' + sub.color + '" stroke-width="3" stroke-linecap="round"/>';
-        }
-
-        points.forEach(p => {
-          svg += '<circle cx="' + p.x + '" cy="' + p.y + '" r="5" fill="#fff" stroke="' + sub.color + '" stroke-width="2"/>';
+        subjects.slice(0, 5).forEach(sub => {
+          const pts = s.records.map((r, idx) => {
+            const sc = r.scores[sub.id] || 0;
+            const x = pad.left + (idx / Math.max(1, s.records.length - 1)) * innerW;
+            const y = pad.top + innerH - (sc/100)*innerH;
+            return { x, y };
+          });
+          if (pts.length > 1) {
+            svg += '<path d="' + pts.map((p, i) => (i===0?'M':'L') + p.x + ' ' + p.y).join(' ') + '" fill="none" stroke="' + sub.color + '" stroke-width="2.5" stroke-linecap="round"/>';
+          }
+          pts.forEach(p => {
+            svg += '<circle cx="' + p.x + '" cy="' + p.y + '" r="4.5" fill="#fff" stroke="' + sub.color + '" stroke-width="2.5"/>';
+          });
         });
-      });
-
-      svg += '</svg>';
-      area.innerHTML = svg;
+        svg += '</svg>';
+        box.innerHTML = svg;
+      } else {
+        let html = '<div style="width:100%; display:flex; flex-direction:column; gap:8px;">';
+        subjects.forEach(sub => {
+          const startSc = s.records[0]?.scores[sub.id] || 0;
+          const endSc = s.records[s.records.length - 1]?.scores[sub.id] || 0;
+          const diff = endSc - startSc;
+          const barW = Math.min(100, Math.max(6, Math.abs(diff)*4));
+          const color = diff>0?'#10b981':diff<0?'#ef4444':'#94a3b8';
+          html += '<div style="display:flex; align-items:center; gap:12px; font-size:13px;"><span style="width:70px; font-weight:700;">' + sub.name + '</span><div style="flex:1; background:#f1f5f9; height:24px; border-radius:8px; display:flex; align-items:center; padding:0 8px;"><div style="height:14px; border-radius:4px; width:' + barW + '%; background:' + color + ';"></div><span style="font-size:12px; margin-left:8px; color:#475569;">' + startSc + '점 ➡️ ' + endSc + '점</span></div><span style="width:65px; text-align:right; font-weight:800; color:' + color + ';">' + (diff>0?'+':'') + diff + '점</span></div>';
+        });
+        html += '</div>';
+        box.innerHTML = html;
+      }
     }
 
-    renderStudentList();
-    renderStudentDetail();
+    function setTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabLine').className = 'tab-btn' + (tab==='line'?' active':'');
+      document.getElementById('tabBar').className = 'tab-btn' + (tab==='bar'?' active':'');
+      renderChart(window.currentStudents[selIdx]);
+    }
+
+    window.renderAll = function() {
+      renderList();
+      renderDetail();
+    };
+
+    window.renderAll();
   </script>
 </body>
 </html>`;
@@ -312,7 +421,7 @@ export function exportToSingleHtmlFile(students: Student[], schoolName: string =
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `중학생_수업향상도_데이터베이스_${new Date().toISOString().slice(0, 10)}.html`;
+  a.download = `중학생_수업향상도_FirebaseDB_${new Date().toISOString().slice(0, 10)}.html`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
